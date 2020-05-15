@@ -1,0 +1,30 @@
+sudo: required
+#   specify docker as a dependecy
+services:
+  - docker
+
+
+#    production dockerfile does not allow us to run tests!, so run as Dockerfile.dev
+before_install:
+  - docker build -t tlonist/react-test -f ./client/Dockerfile.dev ./client
+
+#   makes test code exist by adding -- --coverage
+script:
+  - docker run tlonist/react-test npm test -- --coverage
+
+#   build prod versions of docker
+after_success:
+  - docker build -t tlonist/multi-client ./client
+  - docker build -t tlonist/multi-nginx ./nginx
+  - docker build -t tlonist/multi-server ./server
+  - docker build -t tlonist/multi-worker ./worker
+#   login to Docker CLI
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+#   push all to docker hub, by using encrypted private information entered in Travis
+  - docker push tlonist/multi-client
+  - docker push tlonist/multi-nginx
+  - docker push tlonist/multi-server
+  - docker push tlonist/multi-worker
+
+
+#   tell elastic beanstalk to update
